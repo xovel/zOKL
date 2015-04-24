@@ -1,0 +1,367 @@
+﻿//2013年重制版一键换装源代码
+//最终版：20130209
+//时间：2013年2月9日
+//编制者：断无忌
+//运行工具环境：按键精灵8.2
+
+UserVar zAutoBack "自动换回"
+UserVar zLeftHand "鼠标主次键切换"
+UserVar zMode "换装检测方案"
+UserVar zMouseRCM "换装速度与模式"
+UserVar zSelectNumber1 "装备栏选择的装备个数"
+UserVar zSelectNumber2 "快捷栏中选择的装备个数"
+UserVar zSelectNumber3 "选择的消耗品个数"
+UserVar zBagHotKey "物品栏快捷键"
+UserVar zAutoBackDelay "自动换回延迟时间(秒)"
+UserVar zExtraDelay "单次换装额外延迟"
+UserVar zEachLength "小格横向长度"
+UserVar zEachHeight "小格纵向长度"
+UserVar zEquipX "装备栏位置横坐标"
+UserVar zEquipY "装备栏位置纵坐标"
+UserVar zMouseCenterX "换装后鼠标位置横坐标"
+UserVar zMouseCenterY "换装后鼠标位置纵坐标"
+UserVar zFirstItemX "第一个格子中央横坐标"
+UserVar zFirstItemY "第一个格子起始纵坐标"
+UserVar zFirstConvItemX "快捷栏中第一个格子中央横坐标"
+UserVar zFirstConvItemY "快捷栏中第一个格子起始纵坐标"
+UserVar zExBagPos1 "物品栏检测范围"
+UserVar zExBagPos2 "物品栏检测范围"
+UserVar zExBagPos3 "物品栏检测范围"
+UserVar zExBagPos4 "物品栏检测范围"
+UserVar zEquipPos1 "装备栏检测范围"
+UserVar zEquipPos2 "装备栏检测范围"
+UserVar zEquipPos3 "装备栏检测范围"
+UserVar zEquipPos4 "装备栏检测范围"
+UserVar zTitleValue "称号选择开关"
+UserVar zTitlePos "称号具体位置"
+UserVar zXHPActive "自动嗑药"
+UserVar zPetSkillActive "施放宠物技能"
+UserVar zPetSkillHotKey "宠物技能快捷键"
+
+UserVar zXHPPos1 "消耗品位置"
+UserVar zXHPPos2 "消耗品位置"
+UserVar zXHPPos3 "消耗品位置"
+UserVar zXHPPos4 "消耗品位置"
+UserVar zXHPPos5 "消耗品位置"
+UserVar zXHPPos6 "消耗品位置"
+
+//喵，为毛消耗品的英文是consumable……好别扭的感觉……
+
+UserVar zPos1 "装备位置"
+UserVar zPos2 "装备位置"
+UserVar zPos3 "装备位置"
+UserVar zPos4 "装备位置"
+UserVar zPos5 "装备位置"
+UserVar zPos6 "装备位置"
+UserVar zPos7 "装备位置"
+UserVar zPos8 "装备位置"
+UserVar zPos9 "装备位置"
+UserVar zPos10 "装备位置"
+UserVar zPos11 "装备位置"
+
+UserVar zConvPos1 "快捷栏中装备位置"
+UserVar zConvPos2 "快捷栏中装备位置"
+UserVar zConvPos3 "快捷栏中装备位置"
+UserVar zConvPos4 "快捷栏中装备位置"
+UserVar zConvPos5 "快捷栏中装备位置"
+UserVar zConvPos6 "快捷栏中装备位置"
+ 
+Dim n //本次换装数量
+Dim zE(11) //装备位置
+Dim zE2(6) //快捷栏中装备
+Dim zX(11),zY(11) //具体装备的坐标
+Dim zZ(11) //记录换装与否
+Dim zC(11) //方案二所用。记录对应颜色
+
+Dim i, j, k
+
+Dim zTitleX(3), zTitleY(3), zTitleC(3), zTitleZ //称号相关变量
+Dim zXHP(6), zXHPX(6), zXHPY(6) //消耗品相关变量
+
+//装备位置信息转移
+zE(1) = zPos1 : zE(2) = zPos2 : zE(3) = zPos3
+zE(4) = zPos4 : zE(5) = zPos5 : zE(6) = zPos6
+zE(7) = zPos7 : zE(8) = zPos8 : zE(9) = zPos9
+zE(10) = zPos10 : zE(11) = zPos11
+
+zE2(1) = zConvPos1 : zE2(2) = zConvPos2
+zE2(3) = zConvPos3 : zE2(4) = zConvPos4
+zE2(5) = zConvPos5 : zE2(6) = zConvPos6 
+
+zXHP(1) = zXHPPos1 : zXHP(2) = zXHPPos2 : zXHP(3) = zXHPPos3
+zXHP(4) = zXHPPos4 : zXHP(5) = zXHPPos5 : zXHP(6) = zXHPPos6
+
+n = zSelectNumber1 + zSelectNumber2
+
+If n > 11 Then 
+    MessageBox "装备数量超过11个。罢工不解释！"
+    EndScript 
+End If
+
+If n = 0 Then  //没有装备就直接完事了……
+    MessageBox "0个装备做啥呢……作者都无力吐槽您了……"
+    //ExitScript //退出脚本执行
+    EndScript //停止脚本执行
+End If
+
+If zSelectNumber1 = 0 Then 
+    If zTitleValue = 1 Then 		
+        MessageBox "装备栏中就一个称号，不玩。不给换！"
+        EndScript 
+    End If
+End If	
+
+//获取窗口位置信息
+Hwnd = Plugin.Window.Find(0, "地下城与勇士")
+If Hwnd = 0 Then 
+    MessageBox "未找到窗口！没运行还是消失了呢~~~~一定是消失了，啦啦啦~"
+    EndScript 
+End If
+sRect = Plugin.Window.GetWindowRect(Hwnd)
+xy = Split(sRect, "|")
+x0 = Clng(xy(0)) : y0 = Clng(xy(1))
+
+//装备信息预处理
+For i = 1 To zSelectNumber1
+    zX(i) = x0 + zEachLength * ((zE(i) - 1) mod 8) + zFirstItemX
+    zY(i) = y0 + zEachHeight * ((zE(i) - 1) \ 8) + zFirstItemY
+Next
+For i = 1 To zSelectNumber2
+    zX(i + zSelectNumber1) = x0 + zEachLength * (zE2(i) - 1) + zFirstConvItemX    
+    zY(i + zSelectNumber1) = y0 + zFirstConvItemY    
+Next
+For i = 1 To zSelectNumber3	
+    zXHPX(i) = x0 + zEachLength * (zXHP(i) - 1) + zFirstConvItemX    
+    zXHPY(i) = y0 + zFirstConvItemY + zEachHeight / 2         
+Next  
+
+MoveTo x0 + 1, y0 + 1
+Call Plugin.Window.Active(Hwnd)
+
+//嗑药相关
+If zXHPActive = 1 Then
+    Delay 100  
+    k = 5  	      
+    Do  While k > 0  
+        For i = 1 To zSelectNumber3      
+            MoveTo zXHPX(i), zXHPY(i)	
+            If zLeftHand = 0 Then 
+                RightDown 1
+                Delay 10
+                RightUp 1
+                Delay 20
+            Else 
+                LeftDown 1
+                Delay 10
+                LeftUp 1
+                Delay 20
+            End If
+        Next	
+        k = k - 1                              	
+    Loop
+End If
+
+//施放宠物技能（或者绝杀技？）
+If zPetSkillActive = 1 Then
+    Delay 100 
+    For i = 1 To 3
+        //放三次，没放出来就算了……
+        KeyPress zPetSkillHotKey, 1
+        Delay 30
+    Next
+End If
+
+Rem 自动换回
+
+If zSelectNumber1 > 0 Then 	
+    //打开背包   
+    Do 
+        KeyPress zBagHotKey, 1
+        Delay 30
+        FindColor zExBagPos1 + x0, zExBagPos2 + y0, zExBagPos3 + x0, zExBagPos4 + y0, "B8FFFF", intX, intY			
+    Loop While intX <= 0 And intY <= 0 
+
+    //激活背包栏的装备栏选项卡
+    Do 
+        MoveTo zEquipX + x0, zEquipY + y0	
+        If zLeftHand = 0 Then 
+            LeftClick 1
+        Else 
+            RightClick 1
+        End If
+        Delay 30
+        FindColor zEquipPos1 + x0, zEquipPos2 + y0, zEquipPos3 + x0, zEquipPos4 + y0, "B8FFFF", intX, intY			
+    Loop  While intX <= 0 And intY <= 0   
+End If
+
+//预抓取颜色与设立检测标识
+For i = 1 To n
+    zC(i) = GetPixelColor(zX(i), zY(i))
+    zZ(i) = 0
+    If zMode = 1 Then 
+        //边框色“2E6183”意味着当前装备没有冷却完毕 			
+        IfColor zX(i), zY(i), "2E6183", 0 Then 			
+            //IfColor zX(i), zY(i), "55BBFF", 1 Then
+            zZ(i) = 2
+        End If  
+    End If   
+Next
+
+//称号优先特殊处理
+
+//这里采用三点判断法则。可以拓展至全部装备检测。
+//全部装备的三点检测方法由于代码量和功能比例不协调，这里作者就只写出称号检测的方法了。            
+//注意，称号由于是不检测CD的，所以三点坐标的获取采取的是纵向抓三点。
+//在检测装备时，请横向抓三点做判断。这样主要是为了避免冷却中装备的冷却线刚好与检测位置冲突时造成的检测误差。
+//当然，稍微全面的方法是把某一横向部位的点全部抓了……最犀利的办法就是将整个格子中的像素点全抓了……
+//全抓意味着将有至少30*30=900个参数来表示这900个像素点的颜色值……
+//1280*960窗口下背包格子是48*48的。那么就是48*48=2304……
+//然后考虑到二阶背包扩充与快捷栏，就是54个不同的格子。那么54*2304是什么一个概念呢……
+//通常在检测时，只检测核心位置的颜色就可以了。
+//完全检测方法将要检测所有位置，代码量将十分惊人……
+//不过都是一些雷同的代码，复制跟粘贴的事情罢了……
+//能读懂本脚本代码的可以写出完全检测的脚本。
+//当然，优化的方法有很多，比如：
+//·使用数组来标记颜色变量(三维数组，第一维表示位置，第二维表示横坐标，第三维表示纵坐标)
+//·判断颜色标识也用相同维数的数组表示
+//·加入检测“冷却线位置”参数（在全抓取的情况下获取冷却线位置是非常简单的） 
+//·使用类(Class)的概念；或者Type数据类型           
+//作者不想让程序代码变得臃肿无力，所以任何版本的zOKL都不会加入换装完全检测功能。
+//作者将zOKL当作zephyrTooL来开发与使用，不会背离zephyrTooL的宗旨。所以这里只提供方法不提供具体代码。
+
+If zTitleValue = 1 Then
+    Delay 100 
+    For i = 1 To 3    	
+        zTitleX(i) = x0 + zEachLength * ((zTitlePos - 1) mod 8) + zFirstItemX
+        zTitleY(i) = y0 + zEachHeight * ((zTitlePos - 1) \ 8) + zFirstItemY + i * (zEachHeight / 4)        
+        MoveTo zMouseCenterX + x0, zMouseCenterY + y0
+        zTitleC(i) = GetPixelColor(zTitleX(i), zTitleY(i))  	
+    Next
+    zTitleZ = 3  		
+    For i = 1 To 3
+        If zTitleZ > 2 Then
+            MoveTo zTitleX(i), zTitleY(i)	
+            If zLeftHand = 0 Then 
+                RightDown 1
+                Delay 10
+                RightUp 1
+                Delay 20
+            Else 
+                LeftDown 1
+                Delay 10
+                LeftUp 1
+                Delay 20
+            End If
+            For k = 1 To 3
+                If zTitleZ > 0 Then
+                    MoveTo zMouseCenterX + x0, zMouseCenterY + y0
+                    Delay 10 
+                    IfColor zTitleX(k), zTitleY(k), zTitleC(k), 1 Then                    	
+                        zTitleZ = zTitleZ - 1		
+                    End If
+                End If
+            Next  
+        End If	
+    Next 
+End If 
+
+//开始换装与判断
+k = n
+While k > 0
+    For i = 1 To n
+        If zZ(i) = 0 Then
+            MoveTo zX(i), zY(i) + zEachHeight / 2			
+            If zMouseRCM = 1 Then 
+                //模拟方式为两次鼠标操作。			
+                If zLeftHand = 0 Then 
+                    RightDown 1
+                    Delay 10
+                    RightUp 1
+                    Delay 20
+                Else 
+                    LeftDown 1
+                    Delay 10
+                    LeftUp 1
+                    Delay 20
+                End If					
+            Else 
+                //模拟方式为直接鼠标右击。 
+                If zLeftHand = 0 Then 
+                    RightClick 1
+                Else 
+                    LeftClick 1
+                End If
+                Delay 30
+            End If
+            Delay zExtraDelay  //额外延迟
+        End If
+    Next 
+    Delay 50  //固定延迟。缓解判断
+    MoveTo zMouseCenterX + x0, zMouseCenterY + y0
+    Delay 30  //必要延迟，可以设置长一点，可以减少工具的判断压力。
+    If zMode = 2 Then 
+        //换装方案二的检测方法（强制向）			
+        For i = 1 To n
+            If zZ(i) = 0 Then 
+                //下两句可以不加。移开鼠标可以避免核心位置被遮挡。下同
+                MoveTo zMouseCenterX + x0, zMouseCenterY + y0
+                Delay 10                
+                IfColor zX(i), zY(i), zC(i), 1 Then
+                    zZ(i) = 1
+                    k = k - 1		
+                End If
+            End If
+        Next
+    Else 
+        //换装方案一的检测方法（综合检测向）			
+        For i = 1 To n
+            If zZ(i) = 0 Then 
+                MoveTo zMouseCenterX + x0, zMouseCenterY + y0
+                Delay 10
+                //IfColor zX(i), zY(i), "55BBFF", 1 Then
+                IfColor zX(i), zY(i), "2E6183", 0 Then
+                    zZ(i) = 1	
+                    k = k - 1	
+                End If
+            End If
+        Next	
+        For i = 1 To n
+            If zZ(i) = 2 Then
+                MoveTo zMouseCenterX + x0, zMouseCenterY + y0
+                Delay 10
+                //IfColor zX(i), zY(i), "55BBFF", 0 Then
+                IfColor zX(i), zY(i), "2E6183", 1 Then
+                    zZ(i) = 0	
+                End If
+            End If
+        Next
+    End If   
+Wend
+
+If zSelectNumber1 > 0 Then 
+    //关闭背包   
+    Do 
+        KeyPress zBagHotKey, 1
+        Delay 30
+        FindColor zExBagPos1 + x0, zExBagPos2 + y0, zExBagPos3 + x0, zExBagPos4 + y0, "B8FFFF", intX, intY			
+    Loop  While intX > 0 And intY > 0
+End If
+
+//自动换回
+Delay 500  
+If zAutoBack = 1 Then		  
+    zAutoBack = 0	
+    Delay 1000 * zAutoBackDelay 		
+    Goto 自动换回
+End If
+
+//80级首个发布的正式版中娱乐向的换回等待方式。此法稍显精细与严密。
+//If zAutoBack = 1 Then	
+//    zTemp = 0
+//    While zTemp < zAutoDelay * 10
+//        Delay 100
+//        zTemp = zTemp + 1
+//    Wend
+//    zAutoBack = 0			
+//    Goto 自动换回
+//End If
